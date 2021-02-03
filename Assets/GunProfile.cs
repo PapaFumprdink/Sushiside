@@ -2,6 +2,7 @@ using System.Collections;
 using UnityEngine;
 
 [DisallowMultipleComponent]
+[RequireComponent(typeof(Item))]
 public class GunProfile : MonoBehaviour
 {
     [SerializeField] PlayerControls controls;
@@ -23,6 +24,7 @@ public class GunProfile : MonoBehaviour
     [SerializeField] float reloadTime;
 
     [Space]
+    [SerializeField] Item item;
     [SerializeField] Transform root;
     [SerializeField] SpriteRenderer spriteRenderer;
     [SerializeField] Transform muzzle;
@@ -35,10 +37,16 @@ public class GunProfile : MonoBehaviour
 
     void Start ()
     {
-        controls.OnInputButtonEvent += InputButtonEvent;
+        if (!item) item = GetComponentInChildren<Item>();
     }
 
     private void Update()
+    {
+        UpdateRotation();
+        CheckInput();
+    }
+
+    private void UpdateRotation()
     {
         FacingDirection = controls.LookDirection;
 
@@ -53,38 +61,56 @@ public class GunProfile : MonoBehaviour
         recoilVelocity -= recoilVelocity * recoilDrag * Time.deltaTime;
     }
 
-    private void InputButtonEvent(InputButton button, InputPhase phase, float value)
+    private void CheckInput()
+    {
+        if (item.ParentTransform)
+        {
+            var controls = item.ParentTransform.GetComponent<PlayerControls>();
+
+            if (controls)
+            {
+                var inputPhase = controls.GetButtonPhase(InputButton.Fire);
+
+                if (singlefire && inputPhase == InputPhase.Down)
+                {
+                    if (burstCount > 1)
+                    {
+                        StartCoroutine(Burst());
+                    }
+                    else
+                    {
+                        Shoot();
+                    }
+                }
+                else if (!singlefire && inputPhase == InputPhase.Held)
+                {
+                    Shoot();
+                }
+            }
+        }
+    }
+
+    private void InputButtonEvent(PlayerControls controls, InputButton button, InputPhase phase, float value)
     {
         if (enabled && gameObject.activeSelf)
         {
-            switch (button)
+            if (button == InputButton.Fire && Time.time > nextFireTime)
             {
-                case InputButton.Fire:
-                    if (Time.time > nextFireTime)
+                if (singlefire && phase == InputPhase.Down)
+                {
+                    if (burstCount > 1)
                     {
-                        if (singlefire && phase == InputPhase.Down)
-                        {
-                            if (burstCount > 1)
-                            {
-                                StartCoroutine(Burst());
-                            }
-                            else
-                            {
-                                Shoot();
-                            }
-                        }
-                        else if (!singlefire && phase == InputPhase.Held)
-                        {
-                            Shoot();
-                        }
+                        StartCoroutine(Burst());
                     }
-                    break;
-
-                case InputButton.AltFire:
-                    break;
-
-                case InputButton.Reload:
-                    break;
+                    else
+                    {
+                        Shoot();
+                    }
+                }
+                else if (!singlefire && phase == InputPhase.Held)
+                {
+                    Shoot();
+                }
             }
         }
     }

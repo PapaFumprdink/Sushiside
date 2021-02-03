@@ -20,14 +20,12 @@ public class PlayerLocomotion : MonoBehaviour
     [SerializeField] private LayerMask groundedMask = ~0;
 
     [Space]
-    [SerializeField] private float downGravity = 64f;
-    [SerializeField] private float upGravity = 32f;
+    [SerializeField] private float downGravity = 4f;
+    [SerializeField] private float upGravity = 2f;
 
     [Space]
     [SerializeField] private PlayerControls controls;
     [SerializeField] new private Rigidbody2D rigidbody;
-
-    private bool wantsToJump;
 
     public Vector2 MovementDirection { get; private set; }
     public bool IsGrouned { get; private set; }
@@ -36,56 +34,31 @@ public class PlayerLocomotion : MonoBehaviour
     {
         if (!controls) controls = GetComponent<PlayerControls>();
         if (!rigidbody) rigidbody = GetComponent<Rigidbody2D>();
-
-        controls.OnInputButtonEvent += InputButtonEvent;
     }
 
-    private void InputButtonEvent(InputButton button, InputPhase phase, float value)
+    private void Update()
     {
-        switch (button)
+        CheckInput();
+        MovePlayer();
+        UpdateGravity();
+    }
+
+    private void CheckInput()
+    {
+        MovementDirection = new Vector2(controls.GetButtonValue(InputButton.Horizontal), controls.GetButtonValue(InputButton.Vertical));
+
+        if (controls.GetButtonPhase(InputButton.Jump) == InputPhase.Down)
         {
-            case InputButton.Up:
-                MovementDirection += Vector2.up;
-                break;
-
-            case InputButton.Down:
-                MovementDirection += Vector2.down;
-                break;
-
-            case InputButton.Left:
-                MovementDirection += Vector2.left;
-                break;
-
-            case InputButton.Right:
-                MovementDirection += Vector2.right;
-                break;
-
-            case InputButton.Jump:
-                if (phase == InputPhase.Down)
-                {
-                    Jump();
-                    wantsToJump = true;
-                }
-                else if (phase == InputPhase.Up)
-                {
-                    wantsToJump = false;
-                }
-                break;
+            Jump();
         }
     }
 
-    private void Jump ()
+    private void Jump()
     {
         if (IsGrouned && !canFly)
         {
             rigidbody.velocity = new Vector2(MovementDirection.x * leapPower, jumpPower);
         }
-    }
-
-    private void Update()
-    {
-        MovePlayer();
-        UpdateGravity();
     }
 
     private void MovePlayer()
@@ -107,7 +80,7 @@ public class PlayerLocomotion : MonoBehaviour
         if (canFly)
             rigidbody.gravityScale = 0;
         else
-            rigidbody.gravityScale = (rigidbody.velocity.y < 0 || !wantsToJump) ? downGravity : upGravity;
+            rigidbody.gravityScale = (rigidbody.velocity.y < 0 || !controls.GetButtonState(InputButton.Jump)) ? downGravity : upGravity;
     }
 
     private void FixedUpdate()

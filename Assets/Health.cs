@@ -1,7 +1,7 @@
 using UnityEngine;
 
 [DisallowMultipleComponent]
-public class Throwable : MonoBehaviour
+public class Health : MonoBehaviour
 {
     
 }

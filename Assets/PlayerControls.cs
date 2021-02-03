@@ -1,62 +1,111 @@
-using System.Collections;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Controls;
 
 [DisallowMultipleComponent]
 public class PlayerControls : MonoBehaviour
 {
-    public event System.Action<InputButton, InputPhase, float> OnInputButtonEvent;
+    [SerializeField] private int gamepadIndex;
 
     new Camera camera;
+    Dictionary<InputButton, bool> previousStateMap;
 
-    public Vector2 LookPosition => camera.ScreenToWorldPoint(Input.mousePosition);
+    public Vector2 LookPosition { get; private set; }
     public Vector2 LookDirection => (LookPosition - (Vector2)transform.position).normalized;
-
-    private Dictionary<InputButton, KeyCode> InputMap = new Dictionary<InputButton, KeyCode>()
-    {
-        { InputButton.Up, KeyCode.W }, { InputButton.Down, KeyCode.S },
-        { InputButton.Left, KeyCode.A }, { InputButton.Right, KeyCode.D },
-
-        { InputButton.Jump, KeyCode.Space },
-
-        { InputButton.Fire, KeyCode.Mouse0 },
-        { InputButton.AltFire, KeyCode.Mouse1 },
-        { InputButton.Reload, KeyCode.R }
-    };
 
     private void Start()
     {
         camera = Camera.main;
-    }
 
-    private void Update()
-    {
-        CheckAllButtons();
-    }
-
-    private void CheckAllButtons()
-    {
-        foreach (var mapping in InputMap)
+        previousStateMap = new Dictionary<InputButton, bool>();
+        foreach (var button in (InputButton[])Enum.GetValues(typeof(InputButton)))
         {
-            CheckMapping(mapping);
+            previousStateMap.Add(button, false);
         }
     }
 
-    private void CheckMapping(KeyValuePair<InputButton, KeyCode> mapping) => CheckButton(mapping.Key, mapping.Value);
-
-    private void CheckButton(InputButton button, KeyCode key)
+    private void LateUpdate()
     {
-             if (Input.GetKeyDown(key)) OnInputButtonEvent?.Invoke(button, InputPhase.Down, 2);
-        else if (Input.GetKey    (key)) OnInputButtonEvent?.Invoke(button, InputPhase.Held, 1f);
-        else if (Input.GetKeyUp  (key)) OnInputButtonEvent?.Invoke(button, InputPhase.Up, -1f);
+        foreach (var button in (InputButton[])Enum.GetValues(typeof(InputButton)))
+        {
+            previousStateMap[button] = GetButtonState(button);
+        }
+    }
+
+    public InputPhase GetButtonPhase(InputButton button)
+    {
+        var state = GetButtonState(button);
+        var previousState = previousStateMap[button];
+
+        if (state)
+        {
+            if (previousState) return InputPhase.Held;
+            else return InputPhase.Down;
+        }
+        else
+        {
+            if (previousState) return InputPhase.Up;
+            else return InputPhase.Idle;
+        }
+    }
+
+    public bool GetButtonState(InputButton button) => GetButtonValue(button) > 0.5f;
+
+    public float GetButtonValue (InputButton button)
+    {
+        if (Gamepad.all.Count > gamepadIndex)
+        {
+            var gamepad = Gamepad.all[gamepadIndex];
+
+            LookPosition = (Vector2)transform.position + gamepad.rightStick.ReadValue();
+
+            switch (button)
+            {
+                case InputButton.Horizontal:
+                    return gamepad.leftStick.ReadValue().x;
+                case InputButton.Vertical:
+                    return gamepad.leftStick.ReadValue().y;
+                case InputButton.Jump:
+                    return gamepad.aButton.isPressed ? 1f : 0f;
+                case InputButton.Fire:
+                    return gamepad.rightShoulder.isPressed ? 1f : 0f;
+                case InputButton.Throw:
+                    return gamepad.leftShoulder.isPressed ? 1f : 0f;
+                default:
+                    return 0f;
+            }
+            
+        }
+        else if (gamepadIndex == 0)
+        {
+            LookPosition = camera.ScreenToWorldPoint(Mouse.current.position.ReadValue());
+
+            switch (button)
+            {
+                case InputButton.Horizontal:
+                    return (Keyboard.current.aKey.isPressed ? -1f : 0f) + (Keyboard.current.dKey.isPressed ? 1f : 0f);
+                case InputButton.Vertical:
+                    return (Keyboard.current.wKey.isPressed ? 1f : 0f) + (Keyboard.current.sKey.isPressed ? -1f : 0f);
+                case InputButton.Jump:
+                    return Keyboard.current.spaceKey.isPressed ? 1f : 0f;
+                case InputButton.Fire:
+                    return Mouse.current.leftButton.isPressed ? 1f : 0f;
+                case InputButton.Throw:
+                    return Mouse.current.rightButton.isPressed ? 1f : 0f;
+                default:
+                    return 0f;
+            }
+        }
+        else return 0f;
     }
 }
 
-public enum InputPhase { Down, Held, Up }
+public enum InputPhase { Down, Held, Up, Idle }
 public enum InputButton
 {
-    Up, Down,
-    Left, Right,
+    Horizontal, Vertical,
     Jump,
-    Fire, AltFire, Reload
+    Fire, Throw
 }
