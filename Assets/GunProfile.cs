@@ -5,9 +5,6 @@ using UnityEngine;
 [RequireComponent(typeof(Item))]
 public class GunProfile : MonoBehaviour
 {
-    [SerializeField] PlayerControls controls;
-    [SerializeField] new Rigidbody2D rigidbody;
-
     [Space]
     [SerializeField] GameObject projectilePrefab;
     [SerializeField] float firerate;
@@ -18,10 +15,6 @@ public class GunProfile : MonoBehaviour
     [SerializeField] float recoilAmount;
     [SerializeField] float recoilDrag;
     [SerializeField] float knockback;
-
-    [Space]
-    [SerializeField] int magazineSize;
-    [SerializeField] float reloadTime;
 
     [Space]
     [SerializeField] Item item;
@@ -48,22 +41,25 @@ public class GunProfile : MonoBehaviour
 
     private void UpdateRotation()
     {
-        FacingDirection = controls.LookDirection;
+        var controls = item.ParentTransform?.GetComponent<PlayerControls>();
+        if (controls)
+        {
+            FacingDirection = controls.LookDirection;
 
-        spriteRenderer.flipX = FacingDirection.x < 0f;
+            spriteRenderer.flipY = FacingDirection.x < 0f;
 
-        root.right = FacingDirection;
-        root.localScale = new Vector3(1, FacingDirection.x < 0 ? -1 : 1, 1);
+            root.right = FacingDirection;
 
-        var baseRotation = Mathf.Atan2(FacingDirection.y, FacingDirection.x) * Mathf.Rad2Deg;
-        root.rotation = Quaternion.Euler(0, 0, baseRotation + recoilVelocity);
+            var baseRotation = Mathf.Atan2(FacingDirection.y, FacingDirection.x) * Mathf.Rad2Deg;
+            root.rotation = Quaternion.Euler(0, 0, baseRotation + recoilVelocity);
 
-        recoilVelocity -= recoilVelocity * recoilDrag * Time.deltaTime;
+            recoilVelocity -= recoilVelocity * recoilDrag * Time.deltaTime;
+        }
     }
 
     private void CheckInput()
     {
-        if (item.ParentTransform)
+        if (item.ParentTransform && Time.time > nextFireTime)
         {
             var controls = item.ParentTransform.GetComponent<PlayerControls>();
 
@@ -83,31 +79,6 @@ public class GunProfile : MonoBehaviour
                     }
                 }
                 else if (!singlefire && inputPhase == InputPhase.Held)
-                {
-                    Shoot();
-                }
-            }
-        }
-    }
-
-    private void InputButtonEvent(PlayerControls controls, InputButton button, InputPhase phase, float value)
-    {
-        if (enabled && gameObject.activeSelf)
-        {
-            if (button == InputButton.Fire && Time.time > nextFireTime)
-            {
-                if (singlefire && phase == InputPhase.Down)
-                {
-                    if (burstCount > 1)
-                    {
-                        StartCoroutine(Burst());
-                    }
-                    else
-                    {
-                        Shoot();
-                    }
-                }
-                else if (!singlefire && phase == InputPhase.Held)
                 {
                     Shoot();
                 }
@@ -154,6 +125,9 @@ public class GunProfile : MonoBehaviour
 
     private void ApplyKnockback()
     {
-        rigidbody.velocity += Vector2.right * FacingDirection * -knockback;
+        var rigidbody = item.ParentTransform?.GetComponent<Rigidbody2D>();
+
+        if (rigidbody)
+            rigidbody.velocity += Vector2.right * FacingDirection * -knockback;
     }
 }

@@ -7,15 +7,7 @@ public class Item : MonoBehaviour
     [SerializeField] new private Rigidbody2D rigidbody;
     [SerializeField] private Vector2 heldOffset;
 
-    public Vector2 Direction
-    {
-        get => spriteRenderer.transform.right;
-        set
-        {
-            spriteRenderer.flipY = value.x < 0;
-            spriteRenderer.transform.right = value;
-        }
-    }
+    public Vector2 Direction { get; set; }
     public Transform ParentTransform { get; set; }
 
     private void Start()

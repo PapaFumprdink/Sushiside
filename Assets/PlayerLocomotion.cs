@@ -12,6 +12,7 @@ public class PlayerLocomotion : MonoBehaviour
     [Space]
     [SerializeField] private float jumpPower = 160f;
     [SerializeField] private float leapPower = 160f;
+    [SerializeField] private float inhibitedJumpScalar;
     [SerializeField] private bool canFly = false;
 
     [Space]
@@ -26,6 +27,7 @@ public class PlayerLocomotion : MonoBehaviour
     [Space]
     [SerializeField] private PlayerControls controls;
     [SerializeField] new private Rigidbody2D rigidbody;
+    [SerializeField] private Health health;
 
     public Vector2 MovementDirection { get; private set; }
     public bool IsGrouned { get; private set; }
@@ -34,6 +36,7 @@ public class PlayerLocomotion : MonoBehaviour
     {
         if (!controls) controls = GetComponent<PlayerControls>();
         if (!rigidbody) rigidbody = GetComponent<Rigidbody2D>();
+        if (!health) health = GetComponent<Health>();
     }
 
     private void Update()
@@ -57,22 +60,28 @@ public class PlayerLocomotion : MonoBehaviour
     {
         if (IsGrouned && !canFly)
         {
-            rigidbody.velocity = new Vector2(MovementDirection.x * leapPower, jumpPower);
+            if (!CanMove())
+                rigidbody.velocity = new Vector2(MovementDirection.x * leapPower, jumpPower) * inhibitedJumpScalar;
+            else
+                rigidbody.velocity = new Vector2(MovementDirection.x * leapPower, jumpPower);
         }
     }
 
     private void MovePlayer()
     {
-        var localVelocity = rigidbody.velocity;
-        var targetVelocity = MovementDirection * maxMovementSpeed;
-        var acceleration = (IsGrouned ? movementAcceleration : airAcceleration) * Time.deltaTime;
+        if (CanMove())
+        {
+            var localVelocity = rigidbody.velocity;
+            var targetVelocity = MovementDirection * maxMovementSpeed;
+            var acceleration = (IsGrouned ? movementAcceleration : airAcceleration) * Time.deltaTime;
 
-        localVelocity.x = Mathf.MoveTowards(localVelocity.x, targetVelocity.x, acceleration);
-        if (canFly) localVelocity.y = Mathf.MoveTowards(localVelocity.y, targetVelocity.y, acceleration);
+            localVelocity.x = Mathf.MoveTowards(localVelocity.x, targetVelocity.x, acceleration);
+            if (canFly) localVelocity.y = Mathf.MoveTowards(localVelocity.y, targetVelocity.y, acceleration);
 
-        rigidbody.velocity = localVelocity;
+            rigidbody.velocity = localVelocity;
 
-        MovementDirection = Vector2.zero;
+            MovementDirection = Vector2.zero;
+        }
     }
 
     private void UpdateGravity ()
@@ -105,6 +114,12 @@ public class PlayerLocomotion : MonoBehaviour
         }
 
         return false;
+    }
+
+    public bool CanMove ()
+    {
+        if (health.IsFrozen) return false;
+        return true;
     }
 
     private void OnDrawGizmosSelected()

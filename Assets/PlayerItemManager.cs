@@ -6,6 +6,7 @@ using UnityEngine;
 public class PlayerItemManager : MonoBehaviour
 {
     [SerializeField] private PlayerControls controls;
+    [SerializeField] private Health health;
     [SerializeField] private float pickupRange = 12f;
     [SerializeField] private float throwForce = 160f;
 
@@ -14,6 +15,13 @@ public class PlayerItemManager : MonoBehaviour
     private void Start()
     {
         if (!controls) controls = GetComponent<PlayerControls>();
+        if (!health) health = GetComponent<Health>();
+
+        health.OnDeath += (damager, damage, point, direction) =>
+        {
+            CurrentItem.Drop(transform, Vector2.up * throwForce);
+            CurrentItem = null;
+        };
     }
 
     private void Update()
@@ -23,6 +31,7 @@ public class PlayerItemManager : MonoBehaviour
             if (CurrentItem)
             {
                 CurrentItem.Drop(transform, controls.LookDirection * throwForce);
+                CurrentItem = null;
             }
             else
             {

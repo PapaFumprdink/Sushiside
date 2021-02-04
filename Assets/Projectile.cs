@@ -13,12 +13,17 @@ public class Projectile : MonoBehaviour
     [SerializeField] private LayerMask hitscanMask;
     [SerializeField] private float lifetime;
 
+    [Space]
+    [SerializeField] private float freezeTime;
+
     new Rigidbody2D rigidbody;
 
     private void Start()
     {
         rigidbody = GetComponent<Rigidbody2D>();
         rigidbody.velocity = transform.right * muzzleVelocity;
+
+        transform.right = rigidbody.velocity.normalized;
 
         Destroy(gameObject, lifetime);
     }
@@ -30,6 +35,12 @@ public class Projectile : MonoBehaviour
 
         if (hit)
         {
+            var health = hit.transform.GetComponent<Health>();
+            if (health && freezeTime > 0f)
+            {
+                health.Freeze(freezeTime);
+            }
+
             Destroy(gameObject);
         }
     }
