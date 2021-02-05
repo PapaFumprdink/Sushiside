@@ -16,6 +16,9 @@ public class Projectile : MonoBehaviour
     [Space]
     [SerializeField] private float freezeTime;
 
+    [Space]
+    [SerializeField] private GameObject hitEffect;
+
     new Rigidbody2D rigidbody;
 
     private void Start()
@@ -41,6 +44,7 @@ public class Projectile : MonoBehaviour
                 health.Freeze(freezeTime);
             }
 
+            Instantiate(hitEffect, hit.point, Quaternion.Euler(0, 0, Mathf.Atan2(hit.normal.y, hit.normal.x) * Mathf.Rad2Deg));
             Destroy(gameObject);
         }
     }

@@ -64,10 +64,17 @@ public class PlayerControls : MonoBehaviour
             switch (button)
             {
                 case InputButton.Horizontal:
+                    if (gamepad.dpad.left.isPressed) return -1f;
+                    if (gamepad.dpad.right.isPressed) return 1f;
                     return gamepad.leftStick.ReadValue().x;
+
                 case InputButton.Vertical:
+                    if (gamepad.dpad.down.isPressed) return -1f;
+                    if (gamepad.dpad.up.isPressed) return 1f;
                     return gamepad.leftStick.ReadValue().y;
+
                 case InputButton.Jump:
+                    if (gamepad.dpad.up.isPressed) return 1f;
                     return gamepad.aButton.isPressed ? 1f : 0f;
                 case InputButton.Fire:
                     return gamepad.rightShoulder.isPressed ? 1f : 0f;
